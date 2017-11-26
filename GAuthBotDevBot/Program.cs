@@ -69,16 +69,15 @@ namespace GAuthBotDevBot
                             switch (x.page)
                             {
                                 case Page.Get:
-                                    /*if (e.CallbackQuery.Data == Page.Main.ToString())
+                                    if (e.CallbackQuery.Data == Page.Main.ToString())
                                     {
-                                        
-                                    }*/
-                                    if (x.accounts.ContainsKey(e.CallbackQuery.Data)) 
+                                        bot.EditMessageTextAsync(x.uid, x.messageid, Translator.get.first_message, replyMarkup: Keyboard.Layout.key1);
+                                        x.page = Page.Main;
+                                    }
+                                    else if (x.accounts.ContainsKey(e.CallbackQuery.Data)) 
                                     {
                                         bot.AnswerCallbackQueryAsync(e.CallbackQuery.Id, new API(API.OTPType.TOTP, x.accounts[e.CallbackQuery.Data].secret_code).Now(), true);
                                     }
-                                    bot.EditMessageTextAsync(x.uid, x.messageid, Translator.get.first_message, replyMarkup: Keyboard.Layout.key1);
-                                    x.page = Page.Main;
                                     break;
                                 case Page.Remove:
                                     if (x.accounts.ContainsKey(e.CallbackQuery.Data))
