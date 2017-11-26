@@ -64,12 +64,17 @@ namespace GAuthBotDevBot.Database
             }
         }
 
-        public User GetUserbyUID(string uid)
+        public User GetUserByUID(string uid)
         {
             try
             {
                 User u = _col.FindOne(o => o.uid == uid);
                 return u;
+            }
+            catch (NullReferenceException)
+            {
+                // User does not exists in the db, no need to raise error
+                return null;
             }
             catch (Exception ex)
             {
@@ -78,17 +83,37 @@ namespace GAuthBotDevBot.Database
             }
         }
 
-        public Dictionary<string, GAuthAcc> GetAccbyUID(string uid)
+        public Dictionary<string, GAuthAcc> GetAccByUID(string uid)
         {
             try
             {
                 Dictionary<string, GAuthAcc> a = _col.FindOne(x => x.uid == uid).accounts;
                 return a;
             }
+            catch (NullReferenceException)
+            {
+                // User does not exists in the db, no need to raise error
+                return null;
+            }
+            catch (Exception ex)
+            {
+                // other type of errors
+                Program.log.Error(ex.ToString());
+                return null;
+            }
+        }
+
+        public bool Update(User olduser)
+        {
+            try
+            {
+                _col.Update(olduser);
+                return true;
+            }
             catch (Exception ex)
             {
                 Program.log.Error(ex.ToString());
-                return null;
+                return false;
             }
         }
     }

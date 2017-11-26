@@ -1,0 +1,5 @@
+{
+  "first_message": "Please select...",
+  "log_init": "Log Initialized",
+  "app_starting": "Starting app..."
+}
