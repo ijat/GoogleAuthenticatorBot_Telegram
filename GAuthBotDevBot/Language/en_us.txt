@@ -1,5 +1,6 @@
 {
   "first_message": "Please select...",
   "log_init": "Log Initialized",
-  "app_starting": "Starting app..."
+  "app_starting": "Starting app...",
+  "callback_query_user_not_found": "Please send /start again"
 }

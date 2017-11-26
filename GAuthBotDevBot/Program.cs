@@ -1,21 +1,20 @@
 ﻿using System;
 using Serilog;
+using GAuthBotDevBot.Language;
 using GAuthBotDevBot.Database;
 using GAuthBotDevBot.Database.Model;
+using GAuthBotDevBot.Keyboard;
+using GAuthBotDevBot.GoogleAuthAPI;
 using System.Threading.Tasks;
 using Telegram.Bot;
-using System.Threading;
 using Telegram.Bot.Types.Enums;
-using GAuthBotDevBot.Keyboard;
-using Telegram.Bot.Types.InlineKeyboardButtons;
-using Telegram.Bot.Types.ReplyMarkups;
-using GAuthBotDevBot.Language;
+using System.Text.RegularExpressions;
 
 namespace GAuthBotDevBot
 {
     class Program
     {
-        private static readonly TelegramBotClient bot = new TelegramBotClient("451009981:AAFnutTPEyzXUGgWQtbNYSW7rA8x99RFaBk");
+        private static readonly TelegramBotClient bot = new TelegramBotClient("451009981:AAGic9MJdnogIi5mOIxl4hcPCSoNICfS3Cw");
         public static Serilog.Core.Logger log;
         public static AppDb db;
 
@@ -29,6 +28,8 @@ namespace GAuthBotDevBot
             bot.OnMessage += Bot_OnMessage;
             bot.OnCallbackQuery += Bot_OnCallbackQuery;
 
+            string a = new API(API.OTPType.TOTP, "sfsdf").Now();
+
             var me = bot.GetMeAsync().Result;
             Console.WriteLine(me.Username);
 
@@ -41,13 +42,68 @@ namespace GAuthBotDevBot
         {
             Task.Run(() =>
             {
-                Console.WriteLine(e.CallbackQuery.Data);
-                bot.AnswerCallbackQueryAsync(e.CallbackQuery.Id, "OK");
-            });
+                var x = db.GetUserByUID(e.CallbackQuery.From.Id);
+                if (x != null)
+                {
+                    switch (e.CallbackQuery.Data)
+                    {
+                        case "get":
+                            x.page = Page.Get;
+                            var k = GAuthBotDevBot.Keyboard.Generator.Create(x, backPage: Page.Main);
+                            bot.EditMessageTextAsync(x.uid, x.messageid, Translator.get.first_message, replyMarkup: k);
+                            break;
+                        case "add":
+                            x.page = Page.Add;
+                            bot.EditMessageTextAsync(x.uid, x.messageid, "Send your Google Auth secret code using this format\n\n<code>[Issuer/Website] [CODE]\n\nEg: gugel.com 131512312SA</code>", parseMode: ParseMode.Html, replyMarkup: Layout.key2);
+                            break;
+                        case "rem":
+                            x.page = Page.Remove;
+                            var kk = GAuthBotDevBot.Keyboard.Generator.Create(x, backPage: Page.Main);
+                            bot.EditMessageTextAsync(x.uid, x.messageid, Translator.get.first_message, replyMarkup: kk);
+                            break;
+                        case "cancel":
+                            bot.EditMessageTextAsync(x.uid, x.messageid, Translator.get.first_message, replyMarkup: Keyboard.Layout.key1);
+                            x.page = Page.Main;
+                            break;
+                        default:
+                            switch (x.page)
+                            {
+                                case Page.Get:
+                                    /*if (e.CallbackQuery.Data == Page.Main.ToString())
+                                    {
+                                        
+                                    }*/
+                                    if (x.accounts.ContainsKey(e.CallbackQuery.Data)) 
+                                    {
+                                        bot.AnswerCallbackQueryAsync(e.CallbackQuery.Id, new API(API.OTPType.TOTP, x.accounts[e.CallbackQuery.Data].secret_code).Now(), true);
+                                    }
+                                    bot.EditMessageTextAsync(x.uid, x.messageid, Translator.get.first_message, replyMarkup: Keyboard.Layout.key1);
+                                    x.page = Page.Main;
+                                    break;
+                                case Page.Remove:
+                                    if (x.accounts.ContainsKey(e.CallbackQuery.Data))
+                                    {
+                                        x.accounts.Remove(e.CallbackQuery.Data);
+                                        bot.AnswerCallbackQueryAsync(e.CallbackQuery.Id, "Deleted!", true);
+                                    }
+                                    bot.EditMessageTextAsync(x.uid, x.messageid, Translator.get.first_message, replyMarkup: Keyboard.Layout.key1);
+                                    x.page = Page.Main;
+                                    break;
 
+                            }
+                            break;
+                    }
+
+                    db.Update(x);
+                }
+                else
+                {
+                    bot.SendTextMessageAsync(e.CallbackQuery.Message.From.Id, Translator.get.callback_query_user_not_found);
+                }
+
+            });
         }
 
-        static int lastm;
         private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
         {
             Task.Run(() =>
@@ -59,41 +115,71 @@ namespace GAuthBotDevBot
                 if (e.Message.Text.Contains("/start"))
                 {
                     // recheck in database if exists
-                    var x = db.GetUserByUID(e.Message.From.Id.ToString());
+                    var x = db.GetUserByUID(e.Message.From.Id);
                     if (x == null)
-                        db.Insert(e.Message.From.Id.ToString(), DateTime.Now);
+                    {
+                        db.Insert(e.Message.From.Id, DateTime.Now);
+
+                    }
 
                     SendFirstMessage(x);
-                }
-                
-
-
-                if (e.Message.Text == "delete")
-                {
-                    var m = bot.SendTextMessageAsync(e.Message.Chat.Id, "Deleting message in 2s...").Result;
-                    Console.WriteLine(m.ToString());
-                    Task.Delay(2000);
-                    var a = bot.DeleteMessageAsync(m.Chat.Id, m.MessageId).Result; // can delete self message
-                    var b = bot.DeleteMessageAsync(m.Chat.Id, e.Message.MessageId).Result; // cant delete user message
-                }
-                else if (e.Message.Text == "k")
-                {
-                    //var x = bot.SendTextMessageAsync(e.Message.Chat.Id, "Choose", replyMarkup: keyboard).Result;
-                    //lastm = x.MessageId;
-                }
-                else if (e.Message.Text == "e")
-                {
-                    var z = bot.EditMessageTextAsync(e.Message.Chat.Id, lastm, "edited").Result;
+                    Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(x));
                 }
                 else
-                    bot.SendTextMessageAsync(e.Message.Chat.Id, "Hello");
+                {
+                    var x = db.GetUserByUID(e.Message.From.Id);
+                    if (x != null)
+                    {
+                        switch (x.page)
+                        {
+                            case Page.Add:
+                                string[] strs = e.Message.Text.Split(" ");
+                                try
+                                {
+                                    bool a = Regex.IsMatch(strs[0], @"^[a-zA-Z0-9_]+$");
+                                    bool b = Regex.IsMatch(strs[1], @"^[a-zA-Z0-9_]+$");
+
+                                    if (a && b)
+                                    {
+                                        GAuthAcc newAcc = new GAuthAcc(issuer: strs[0], secret: strs[1]);
+                                        x.accounts[newAcc.issuer] = newAcc;
+                                        x.page = Page.Main;
+                                        db.Update(x);
+                                        bot.EditMessageTextAsync(x.uid, x.messageid, Translator.get.first_message, replyMarkup: Keyboard.Layout.key1);
+                                        bot.SendTextMessageAsync(x.uid, "Successfully added. Please remove any message containing secret code, OTPs, and QRCode for security reasons.");
+                                    }
+                                    else
+                                        bot.SendTextMessageAsync(x.uid, "Invalid input. Please try again. ;)");
+                                }
+                                catch
+                                {
+                                    bot.SendTextMessageAsync(x.uid, "Invalid input. Please try again. ;)");
+                                }
+                                break;
+                            case Page.Get:
+                                break;
+                            case Page.Remove:
+                                break;
+                            case Page.Main:
+                            default:
+                                bot.SendTextMessageAsync(x.uid, "Please use this message. If it is not available anymore, please send /start.", replyToMessageId: x.messageid);
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        bot.SendTextMessageAsync(x.uid, Translator.get.callback_query_user_not_found);
+                    }
+                }
             });
         }
 
         private static void SendFirstMessage(User x)
         {
-            //bot.EditMessageTextAsync()
-
+            var m = bot.SendTextMessageAsync(x.uid, Translator.get.first_message, replyMarkup: Keyboard.Layout.key1).Result;
+            x.messageid = m.MessageId;
+            x.page = Page.Main;
+            db.Update(x);
         }
 
         private static void InitApp()

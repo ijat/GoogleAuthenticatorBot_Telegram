@@ -37,7 +37,7 @@ namespace GAuthBotDevBot.Database
                 _instance = this;
         }
 
-        public User Insert(string uid, DateTime dt)
+        public User Insert(Int64 uid, DateTime dt)
         {
             try
             {
@@ -52,7 +52,7 @@ namespace GAuthBotDevBot.Database
             }
         }
 
-        public void Insert(string uid, DateTime dt, Dictionary<string, GAuthAcc> acc)
+        public void Insert(Int64 uid, DateTime dt, Dictionary<string, GAuthAcc> acc)
         {
             try
             {
@@ -64,7 +64,7 @@ namespace GAuthBotDevBot.Database
             }
         }
 
-        public User GetUserByUID(string uid)
+        public User GetUserByUID(Int64 uid)
         {
             try
             {
@@ -83,7 +83,7 @@ namespace GAuthBotDevBot.Database
             }
         }
 
-        public Dictionary<string, GAuthAcc> GetAccByUID(string uid)
+        public Dictionary<string, GAuthAcc> GetAccByUID(Int64 uid)
         {
             try
             {

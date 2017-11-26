@@ -11,6 +11,7 @@ namespace GAuthBotDevBot.Language
         public string first_message { get; set; }
         public string log_init { get; set; }
         public string app_starting { get; set; }
+        public string callback_query_user_not_found { get; set; }
     }
 
     class Translator

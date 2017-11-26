@@ -10,19 +10,27 @@ namespace GAuthBotDevBot.Keyboard
     class Layout
     {
         public static readonly InlineKeyboardMarkup key1 = new InlineKeyboardMarkup(new[]
+                {
+                    new[] // first row
                     {
-                        new[] // first row
-                        {
-                            new InlineKeyboardCallbackButton("Get Code", "get")
-                        },
-                        new[] // first row
-                        {
-                            new InlineKeyboardCallbackButton("Add Account", "add")
-                        },
-                        new[] // second row
-                        {
-                            new InlineKeyboardCallbackButton("Remove Account", "rem")
-                        }
-                    });
+                        new InlineKeyboardCallbackButton("Get Code","get")
+                    },
+                    new[] // second row
+                    {
+                        new InlineKeyboardCallbackButton("Add Account","add")
+                    },
+                    new[] // second row
+                    {
+                        new InlineKeyboardCallbackButton("Remove Accout","rem")
+                    }
+                });
+
+        public static readonly InlineKeyboardMarkup key2 = new InlineKeyboardMarkup(new[]
+                {
+                    new[] // first row
+                    {
+                        new InlineKeyboardCallbackButton("Cancel","cancel")
+                    }
+                });
     }
 }
